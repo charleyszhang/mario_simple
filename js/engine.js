@@ -13,6 +13,18 @@ const LOW_GRAVITY = 0.25;
 const DIFFICULTY = 1.35;
 
 class GameEngine {
+  static assetBase() {
+    const script = document.querySelector('script[src*="engine.js"]');
+    if (script?.src) {
+      return script.src.replace(/js\/engine\.js(\?.*)?$/, '');
+    }
+    const path = window.location.pathname.replace(/\\/g, '/');
+    const idx = path.indexOf('/mario_simple');
+    if (idx >= 0) return window.location.origin + path.slice(0, idx + '/mario_simple'.length + 1);
+    if (/\.html$/i.test(path)) return window.location.origin + path.replace(/[^/]+$/, '');
+    return window.location.origin + (path.endsWith('/') ? path : path + '/');
+  }
+
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
@@ -33,22 +45,22 @@ class GameEngine {
   }
 
   async loadImages() {
-    const loadOne = (src, fb) => new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        if (!fb) return resolve(null);
-        const img2 = new Image();
-        img2.onload = () => resolve(img2);
-        img2.onerror = () => resolve(null);
-        img2.src = fb;
+    const base = GameEngine.assetBase();
+    const resolve = (p) => base + p.replace(/^\//, '');
+
+    const loadOne = (src, fb) => new Promise((resolveImg) => {
+      const tryLoad = (url, next) => {
+        const img = new Image();
+        img.onload = () => resolveImg(img);
+        img.onerror = () => (next ? tryLoad(next, null) : resolveImg(null));
+        img.src = url;
       };
-      img.src = src;
+      tryLoad(resolve(src), fb ? resolve(fb) : null);
     });
     const files = {
-      mario: ['images/mario.png', null],
-      elements: ['images/element.png', 'images/element.jpg'],
-      lumalee: ['images/element2.png', 'images/element2.jpg'],
+      mario: ['images/mario.jpg', 'images/mario.png'],
+      elements: ['images/element.jpg', 'images/element.png'],
+      lumalee: ['images/element2.jpg', 'images/element2.png'],
     };
     for (let i = 1; i <= 20; i++) files[`bg${i}`] = [`images/background${i}.jpg`, null];
     await Promise.all(Object.entries(files).map(async ([key, [src, fb]]) => {
@@ -58,21 +70,35 @@ class GameEngine {
 
   resize() {
     const wrapper = document.getElementById('game-wrapper');
-    const maxW = wrapper.clientWidth;
-    const maxH = wrapper.clientHeight - 20;
+    let maxW = wrapper?.clientWidth || 0;
+    let maxH = wrapper ? wrapper.clientHeight - 20 : 0;
+    if (maxW < 64 || maxH < 64) {
+      maxW = window.innerWidth;
+      maxH = window.innerHeight - 20;
+    }
     const ratio = this.W / this.H;
-    let w = maxW, h = w / ratio;
+    let w = maxW;
+    let h = w / ratio;
     if (h > maxH) { h = maxH; w = h * ratio; }
-    this.canvas.width = this.W;
-    this.canvas.height = this.H;
+    w = Math.max(w, 320);
+    h = Math.max(h, 200);
+    this.refreshCanvas();
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
+  }
+
+  /** Reset 2D context — required after canvas was inside display:none (iOS Safari) */
+  refreshCanvas() {
+    this.canvas.width = this.W;
+    this.canvas.height = this.H;
+    this.ctx = this.canvas.getContext('2d');
   }
 
   initLevel(levelData, levelIndex) {
     this.level = JSON.parse(JSON.stringify(levelData));
     this.level.bg = `background${levelIndex + 1}`;
     this.levelTime = 0;
+    this.camera.x = 0;
     this.switches = {};
     this.revealedHidden = {};
     this.meltTimers = {};
@@ -462,9 +488,18 @@ class GameEngine {
   }
 
   render(player) {
+    if (!this.ctx || !this.level) return;
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.W, this.H);
-    const cam = this.camera.x;
+    try {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#3d1f5c';
+      ctx.fillRect(0, 0, this.W, this.H);
+
+      const cam = this.camera.x;
 
     this.drawBackground(ctx, cam);
     this.drawDecorations(ctx, cam);
@@ -548,6 +583,12 @@ class GameEngine {
     ctx.fillStyle = 'rgba(255,182,217,0.8)';
     ctx.font = 'bold 14px sans-serif';
     ctx.fillText(this.level.name, 20, this.H - 20);
+    } catch (err) {
+      console.error('render error', err);
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px sans-serif';
+      ctx.fillText('渲染错误: ' + err.message, 20, 40);
+    }
   }
 
   getBackgroundImage(bgName) {
@@ -660,6 +701,10 @@ class GameEngine {
       ctx.rect(x + 4, y + 2, p.w - 8, p.h * 0.3);
     }
     ctx.fill();
+
+    ctx.strokeStyle = 'rgba(90,26,74,0.45)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
     if (p.type === 'question') {
       ctx.fillStyle = '#fff';
@@ -793,12 +838,17 @@ class GameEngine {
     const x = p.x - cam;
     const y = p.y + Math.sin(p.bob + this.levelTime * 2) * 4;
     const img = this.images.elements;
-    if (img) {
-      const col = p.type % 4;
-      const row = Math.floor(p.type / 4);
-      const sw = img.width / 4;
-      const sh = img.height / 4;
-      ctx.drawImage(img, col * sw, row * sh, sw, sh, x, y, 36, 36);
+    if (img && img.complete && img.naturalWidth > 0) {
+      try {
+        const col = p.type % 4;
+        const row = Math.floor(p.type / 4);
+        const sw = img.width / 4;
+        const sh = img.height / 4;
+        ctx.drawImage(img, col * sw, row * sh, sw, sh, x, y, 36, 36);
+      } catch (e) {
+        ctx.fillStyle = '#ff69b4';
+        ctx.fillRect(x, y, 36, 36);
+      }
     } else {
       ctx.fillStyle = '#ff69b4';
       ctx.beginPath();

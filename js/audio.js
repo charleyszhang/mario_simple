@@ -122,3 +122,4 @@ class GameAudio {
 }
 
 const gameAudio = new GameAudio();
+window.gameAudio = gameAudio;

@@ -17,7 +17,7 @@ html, body {
 #game-wrapper {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 300;
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -26,14 +26,27 @@ html, body {
   background: linear-gradient(180deg, #2d1b4e 0%, #ff9ecf 40%, #ffb6d9 100%);
 }
 
+#game-wrapper:not(.hidden) {
+  pointer-events: auto;
+}
+
+#game-wrapper.hidden {
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
 #gameCanvas {
   display: block;
+  position: relative;
+  z-index: 1;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(255, 105, 180, 0.4);
   max-width: 100%;
-  max-height: 100%;
+  max-height: calc(100vh - 40px);
+  background: #3d1f5c;
 }
 
 #hud {
@@ -44,7 +57,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   pointer-events: none;
-  z-index: 10;
+  z-index: 40;
 }
 
 .hud-left, .hud-right {
@@ -170,7 +183,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   padding: 0 20px;
-  z-index: 20;
+  z-index: 40;
   pointer-events: none;
 }
 

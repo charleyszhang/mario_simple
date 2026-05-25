@@ -114,12 +114,24 @@ const App = {
       const s = JSON.parse(localStorage.getItem('bgf_settings') || '{}');
       this.settings = { music: s.music !== false, lang: s.lang || 'zh', ...s };
     } catch (e) { /* default */ }
-    if (typeof gameAudio !== 'undefined') gameAudio.setEnabled(this.settings.music);
+    this.applyAudioSettings();
+  },
+
+  applyAudioSettings() {
+    const on = this.settings?.music !== false;
+    const ga = window.gameAudio;
+    if (!ga) return;
+    if (typeof ga.setEnabled === 'function') {
+      ga.setEnabled(on);
+    } else {
+      ga.enabled = on;
+      if (!on && typeof ga.stopBGM === 'function') ga.stopBGM();
+    }
   },
 
   saveSettings() {
     localStorage.setItem('bgf_settings', JSON.stringify(this.settings));
-    if (typeof gameAudio !== 'undefined') gameAudio.setEnabled(this.settings.music);
+    this.applyAudioSettings();
   },
 
   saveSession() {
@@ -192,7 +204,7 @@ const App = {
     }
 
     this.showScreen('login');
-    GameController?.init?.();
+    window.GameController?.init?.();
   },
 
   bindAuth() {
@@ -394,14 +406,19 @@ const App = {
   },
 
   startLevel(index) {
-    document.querySelectorAll('[data-screen]').forEach((el) => el.classList.add('hidden'));
-    this.$('game-wrapper')?.classList.remove('hidden');
-    GameController.startLevelFromHub(index, this.profile);
+    if (!window.GameController) {
+      this.showToast('游戏未初始化');
+      return;
+    }
+    GameController.ready.then(() => {
+      GameController.startLevelFromHub(index, this.profile);
+    });
   },
 
   returnToHub() {
     gameAudio?.stopBGM();
     this.$('game-wrapper')?.classList.add('hidden');
+    document.body.dataset.appScreen = 'hub';
     this.showScreen('hub');
     this.renderHub();
     this.saveProfile();

@@ -18,6 +18,9 @@
   let remoteMatch = null;
   let animTimer = null;
   let earnedStar = false;
+  let imagesReady = false;
+  let readyResolve;
+  const ready = new Promise((r) => { readyResolve = r; });
 
   const input = { left: false, right: false, jump: false, interact: false };
   const $ = (id) => document.getElementById(id);
@@ -38,16 +41,20 @@
   function updateHUD() {
     if (player) levelCoins = player.levelCoins || 0;
     const ld = LEVEL_DATA[currentLevel];
-    if ($('levelLabel')) $('levelLabel').textContent = `关卡 ${currentLevel + 1} / 20 - ${ld.name}`;
-    if ($('coinLabel')) $('coinLabel').textContent = `金币: ${totalDisplay()} (本关 ${levelCoins})`;
+    const label = $('levelLabel');
+    if (label && ld) label.textContent = `关卡 ${currentLevel + 1} / 20 - ${ld.name}`;
+    const coinEl = $('coinLabel');
+    if (coinEl) coinEl.textContent = `金币: ${totalDisplay()} (本关 ${levelCoins})`;
     const pl = $('powerLabel');
     if (pl) {
-      pl.textContent = player && player.powerType >= 0 ? POWERUP_NAMES[player.powerType] : '';
+      pl.textContent = player && player.powerType >= 0 && typeof POWERUP_NAMES !== 'undefined'
+        ? (POWERUP_NAMES[player.powerType] || '') : '';
     }
     const mp = $('mpActions');
     if (mp && remotePlayer && remoteMatch?.level === currentLevel) {
       mp.classList.remove('hidden');
-      $('mpOpponent').textContent = remoteMatch.opponent || remotePlayer.nickname;
+      const opp = $('mpOpponent');
+      if (opp) opp.textContent = remoteMatch.opponent || remotePlayer.nickname || '';
     } else if (mp) {
       mp.classList.add('hidden');
     }
@@ -86,15 +93,31 @@
       gameAudio.startLevelBGM(currentLevel);
     }
     updateHUD();
+    engine.render(player);
   }
 
-  function startLevelFromHub(index, userProfile) {
-    applyProfile(userProfile);
+  async function startLevelFromHub(index, userProfile) {
+    await ready;
+
+    document.querySelectorAll('[data-screen]').forEach((el) => el.classList.add('hidden'));
+    document.body.dataset.appScreen = 'game';
+
     const wrapper = $('game-wrapper');
     if (wrapper) wrapper.classList.remove('hidden');
+
+    await new Promise((r) => requestAnimationFrame(r));
     engine.resize();
-    unlockAudio().then(() => gameAudio?.startLevelBGM(index));
+    engine.refreshCanvas();
+    lastTime = performance.now();
+
+    if (!animId) animId = requestAnimationFrame(gameLoop);
+
+    applyProfile(userProfile);
     startLevel(index, true);
+    engine.render(player);
+
+    await unlockAudio();
+    gameAudio?.startLevelBGM(index);
   }
 
   function restartCurrentLevel() {
@@ -174,21 +197,29 @@
   }
 
   function gameLoop(timestamp) {
-    const dt = Math.min(timestamp - lastTime, 50);
+    const dt = Math.min(Math.max(timestamp - lastTime, 0), 50);
     lastTime = timestamp;
 
-    if (gameState === 'playing') {
-      engine.emitTrail(player);
-      const pStatus = engine.updatePlayer(player, input, dt);
-      const wStatus = engine.updateWorld(player, dt);
-      engine.updateCamera(player);
-      updateHUD();
-
-      if (pStatus === 'dead' || wStatus === 'dead') onDeath();
-      else if (wStatus === 'complete') onComplete();
+    try {
+      if (gameState === 'playing' && player) {
+        engine.emitTrail(player);
+        const pStatus = engine.updatePlayer(player, input, dt);
+        const wStatus = engine.updateWorld(player, dt);
+        engine.updateCamera(player);
+        updateHUD();
+        if (pStatus === 'dead' || wStatus === 'dead') onDeath();
+        else if (wStatus === 'complete') onComplete();
+      }
+    } catch (err) {
+      console.error('gameLoop update error', err);
     }
 
-    if (player) engine.render(player);
+    try {
+      if (player && engine.level) engine.render(player);
+    } catch (err) {
+      console.error('gameLoop render error', err);
+    }
+
     animId = requestAnimationFrame(gameLoop);
   }
 
@@ -238,6 +269,7 @@
   $('btnRetry')?.addEventListener('click', () => restartCurrentLevel());
   $('btnHub')?.addEventListener('click', () => {
     gameState = 'idle';
+    input.left = input.right = input.jump = input.interact = false;
     gameAudio?.stopBGM();
     App?.returnToHub?.();
   });
@@ -267,15 +299,22 @@
   async function init() {
     engine.resize();
     await engine.loadImages();
+    imagesReady = true;
+
     player = engine.createPlayer({ x: 80, y: 460 });
     engine.initLevel(LEVEL_DATA[0], 0);
     gameState = 'idle';
     lastTime = performance.now();
+
+    engine.render(player);
     animId = requestAnimationFrame(gameLoop);
+
+    if (readyResolve) readyResolve();
   }
 
   window.GameController = {
     init,
+    ready,
     startLevelFromHub,
     restartCurrentLevel,
     nextLevel,
@@ -298,9 +337,11 @@
         if (devEl) devEl.textContent = String(currentLevel + 1);
       },
       startDev() {
-        unlockAudio().then(() => startLevel(0, true));
-        const devEl = document.getElementById('devLevel');
-        if (devEl) devEl.textContent = '1';
+        ready.then(() => {
+          unlockAudio().then(() => startLevel(0, true));
+          const devEl = document.getElementById('devLevel');
+          if (devEl) devEl.textContent = '1';
+        });
       },
     };
   }
