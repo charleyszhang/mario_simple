@@ -90,7 +90,9 @@
 
   function startLevelFromHub(index, userProfile) {
     applyProfile(userProfile);
-    $('game-wrapper')?.classList.remove('hidden');
+    const wrapper = $('game-wrapper');
+    if (wrapper) wrapper.classList.remove('hidden');
+    engine.resize();
     unlockAudio().then(() => gameAudio?.startLevelBGM(index));
     startLevel(index, true);
   }

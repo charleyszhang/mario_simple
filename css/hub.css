@@ -1,3 +1,14 @@
+#game-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+#game-wrapper.hidden {
+  display: none !important;
+  pointer-events: none;
+}
+
 .app-screen {
   position: fixed;
   inset: 0;
@@ -333,7 +344,17 @@
   transform: translateX(-50%) translateY(0);
 }
 
-#game-wrapper.hidden { display: none !important; }
+.settings-panel label { display: block; margin: 16px 0; color: #5a1a4a; font-weight: 600; }
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body[data-appScreen="hub"] #hubScreen,
+body[data-appScreen="title"] #titleScreen {
+  animation: screenIn 0.4s ease;
+}
 
 .btn-hub-exit {
   position: absolute;

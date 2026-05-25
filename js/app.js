@@ -61,10 +61,38 @@ const App = {
     document.querySelectorAll('[data-screen]').forEach((el) => {
       el.classList.toggle('hidden', el.dataset.screen !== name);
     });
+    document.body.dataset.appScreen = name;
     if (name === 'hub') this.renderHub();
     if (name === 'shop') this.renderShop();
     if (name === 'leaderboard') this.loadLeaderboard();
     if (name === 'profile') this.renderProfile();
+  },
+
+  setLoginLoading(loading) {
+    const btns = ['btnLogin', 'btnRegister', 'btnDemoLogin'];
+    btns.forEach((id) => {
+      const b = this.$(id);
+      if (!b) return;
+      b.disabled = loading;
+      b.style.opacity = loading ? '0.65' : '';
+    });
+    const demo = this.$('btnDemoLogin');
+    if (demo && loading) demo.textContent = '登录中…';
+    else if (demo) demo.textContent = '一键登录 Demo';
+  },
+
+  enterHub() {
+    try {
+      Multiplayer.start(this.profile, () => ({
+        level: GameController?.currentLevel ?? -1,
+        x: GameController?.player?.x ?? 0,
+        y: GameController?.player?.y ?? 0,
+        playing: GameController?.gameState === 'playing',
+      }));
+    } catch (e) { /* offline */ }
+    this.showScreen('hub');
+    gameAudio?.unlock?.();
+    this.showToast(`欢迎，${this.profile?.nickname || '玩家'}！`);
   },
 
   showToast(msg) {
@@ -126,19 +154,23 @@ const App = {
   },
 
   async init() {
-    this.loadSettings();
-    await MarioFont.load();
     this.bindAuth();
     this.bindHub();
     this.bindShop();
     this.bindSettings();
     this.bindLore();
+    this.loadSettings();
 
-    const titleEl = this.$('titleLetters');
-    if (titleEl) MarioFont.renderToElement(titleEl, "MARIO'S STICKY SITUATION", 0.42);
+    try {
+      await MarioFont.load();
+      const titleEl = this.$('titleLetters');
+      if (titleEl) MarioFont.renderToElement(titleEl, "MARIO'S STICKY SITUATION", 0.42);
+    } catch (e) {
+      console.warn('Font load skipped', e);
+    }
 
     const session = JSON.parse(localStorage.getItem('bgf_session') || 'null');
-    if (session?.nickname) {
+    if (session?.nickname && this.$('loginNick')) {
       this.$('loginNick').value = session.nickname;
     }
 
@@ -155,12 +187,12 @@ const App = {
         muteDev: false,
       };
       this.showScreen('hub');
-      if (window.GameController) await GameController.init();
+      GameController?.init?.();
       return;
     }
 
     this.showScreen('login');
-    if (window.GameController) await GameController.init();
+    GameController?.init?.();
   },
 
   bindAuth() {
@@ -172,51 +204,97 @@ const App = {
   async doDemoLogin() {
     if (this.$('loginNick')) this.$('loginNick').value = 'demo';
     if (this.$('loginPass')) this.$('loginPass').value = 'demo123';
-    await this.doLogin();
+    await this.doLogin({ skipIntro: true });
   },
 
-  async doLogin() {
-    const nick = this.$('loginNick').value.trim();
-    const pass = this.$('loginPass').value;
+  async doLogin(options = {}) {
+    const nick = (this.$('loginNick')?.value || '').trim();
+    const pass = this.$('loginPass')?.value || '';
     const err = this.$('loginError');
-    err.textContent = '';
+    if (err) err.textContent = '';
     if (!nick || !pass) {
-      err.textContent = '请输入昵称和密码';
+      if (err) err.textContent = '请输入昵称和密码';
       return;
     }
-    const res = await this.api('auth.php', { action: 'login', nickname: nick, password: pass });
-    if (!res || !res.ok) { err.textContent = res?.error || '登录失败'; return; }
-    this.profile = res.profile || { nickname: nick, token: res.token };
-    if (!this.profile.token) this.profile.token = res.token;
-    this.saveSession();
-    this.startIntro();
+
+    this.setLoginLoading(true);
+    try {
+      let res = await this.api('auth.php', { action: 'login', nickname: nick, password: pass });
+
+      if ((!res || !res.ok) && nick === 'demo' && pass === 'demo123') {
+        res = {
+          ok: true,
+          token: 'demo_local_offline',
+          profile: {
+            nickname: 'demo',
+            token: 'demo_local_offline',
+            stars: 3,
+            coins: 500,
+            levelStars: [true, true, true],
+            maxLevel: 2,
+            skin: 'skin_default',
+            owned: ['skin_default'],
+          },
+        };
+      }
+
+      if (!res || !res.ok) {
+        if (err) err.textContent = res?.error || '登录失败';
+        return;
+      }
+
+      this.profile = res.profile || { nickname: nick, token: res.token };
+      if (!this.profile.nickname) this.profile.nickname = nick;
+      if (!this.profile.token) this.profile.token = res.token;
+      this.saveSession();
+
+      if (options.skipIntro || localStorage.getItem('bgf_seen_intro') === '1') {
+        this.enterHub();
+      } else {
+        this.startIntro();
+      }
+    } catch (e) {
+      if (err) err.textContent = '登录出错：' + (e.message || '未知错误');
+    } finally {
+      this.setLoginLoading(false);
+    }
   },
 
   async doRegister() {
-    const nick = this.$('loginNick').value.trim();
-    const pass = this.$('loginPass').value;
+    const nick = (this.$('loginNick')?.value || '').trim();
+    const pass = this.$('loginPass')?.value || '';
     const err = this.$('loginError');
-    err.textContent = '';
-    const chk = await this.api('auth.php', { action: 'check', nickname: nick });
-    if (chk.exists) { err.textContent = '昵称已被使用'; return; }
-    const res = await this.api('auth.php', { action: 'register', nickname: nick, password: pass });
-    if (!res.ok) { err.textContent = res.error || '注册失败'; return; }
-    this.profile = res.profile || { nickname: nick, token: res.token, coins: 0, stars: 0, levelStars: [] };
-    if (!this.profile.token) this.profile.token = res.token;
-    this.saveSession();
-    this.startIntro();
+    if (err) err.textContent = '';
+    this.setLoginLoading(true);
+    try {
+      const chk = await this.api('auth.php', { action: 'check', nickname: nick });
+      if (chk?.exists) { if (err) err.textContent = '昵称已被使用'; return; }
+      const res = await this.api('auth.php', { action: 'register', nickname: nick, password: pass });
+      if (!res?.ok) { if (err) err.textContent = res?.error || '注册失败'; return; }
+      this.profile = res.profile || { nickname: nick, token: res.token, coins: 0, stars: 0, levelStars: [] };
+      if (!this.profile.nickname) this.profile.nickname = nick;
+      if (!this.profile.token) this.profile.token = res.token;
+      this.saveSession();
+      this.startIntro();
+    } catch (e) {
+      if (err) err.textContent = '注册出错：' + (e.message || '未知错误');
+    } finally {
+      this.setLoginLoading(false);
+    }
   },
 
   startIntro() {
-    Multiplayer.start(this.profile, () => ({
-      level: GameController?.currentLevel ?? -1,
-      x: GameController?.player?.x ?? 0,
-      y: GameController?.player?.y ?? 0,
-      playing: GameController?.gameState === 'playing',
-    }));
     this.showScreen('title');
-    gameAudio?.unlock();
-    gameAudio?.playSting('title');
+    try {
+      Multiplayer.start(this.profile, () => ({
+        level: GameController?.currentLevel ?? -1,
+        x: GameController?.player?.x ?? 0,
+        y: GameController?.player?.y ?? 0,
+        playing: GameController?.gameState === 'playing',
+      }));
+    } catch (e) { /* ignore */ }
+    gameAudio?.unlock?.();
+    gameAudio?.playSting?.('title');
   },
 
   bindLore() {
@@ -243,6 +321,7 @@ const App = {
       }
       if (e.code === 'Space' && this.screen === 'controls') {
         e.preventDefault();
+        localStorage.setItem('bgf_seen_intro', '1');
         this.showScreen('hub');
       }
     });
@@ -265,7 +344,10 @@ const App = {
       if (idx < scenes.length - 1) showScene(idx + 1);
       else this.showScreen('controls');
     });
-    this.$('btnToHub')?.addEventListener('click', () => this.showScreen('hub'));
+    this.$('btnToHub')?.addEventListener('click', () => {
+      localStorage.setItem('bgf_seen_intro', '1');
+      this.showScreen('hub');
+    });
   },
 
   bindHub() {

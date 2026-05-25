@@ -15,7 +15,9 @@ html, body {
 }
 
 #game-wrapper {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
   width: 100vw;
   height: 100vh;
   display: flex;
