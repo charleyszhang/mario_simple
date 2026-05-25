@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>开发者关卡浏览 - Bubble Gum Factory DEV</title>
+  <base href="../">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="dev/dev.css">
+</head>
+<body>
+  <div id="devBanner">
+    <span class="dev-tag">DEV</span>
+    <span>关卡 <strong id="devLevel">1</strong> / 20</span>
+    <span class="dev-keys">PageUp 上一关 · PageDown 下一关 · 空格 确认</span>
+  </div>
+
+  <div id="game-wrapper">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud">
+      <div class="hud-left">
+        <span id="levelLabel">关卡 1 / 20</span>
+        <span id="powerLabel"></span>
+      </div>
+      <div class="hud-right">
+        <span id="coinLabel">金币: 0</span>
+      </div>
+    </div>
+
+    <div id="startScreen" class="overlay hidden">
+      <div class="panel">
+        <h1>开发者关卡浏览</h1>
+        <p class="subtitle">Developer Level Browser</p>
+        <p class="desc">使用 PageUp / PageDown 快速切换关卡，无需通关即可浏览全部 20 关。</p>
+        <button id="btnStart" class="btn-primary">从第 1 关开始</button>
+        <p class="hint">PageDown 下一关 · PageUp 上一关</p>
+      </div>
+    </div>
+
+    <div id="levelComplete" class="overlay hidden">
+      <div class="panel">
+        <h2>关卡完成!</h2>
+        <p id="levelCompleteMsg"></p>
+        <p class="hint">PageDown 下一关 · 空格 确认</p>
+        <button id="btnNext" class="btn-primary">下一关</button>
+      </div>
+    </div>
+
+    <div id="gameOver" class="overlay hidden">
+      <div class="panel">
+        <h2>再试一次!</h2>
+        <p>PageDown 下一关 · PageUp 上一关 · 空格 重试</p>
+        <button id="btnRetry" class="btn-primary">重试本关</button>
+      </div>
+    </div>
+
+    <div id="victory" class="overlay hidden">
+      <div class="panel victory-panel">
+        <h1>工厂之巅!</h1>
+        <p class="stats" id="victoryStats"></p>
+        <button id="btnRestart" class="btn-primary">再玩一次</button>
+      </div>
+    </div>
+
+    <div id="touchControls">
+      <div class="dpad">
+        <button class="touch-btn" id="btnLeft" aria-label="左">L</button>
+        <button class="touch-btn" id="btnRight" aria-label="右">R</button>
+      </div>
+      <div class="action-btns">
+        <button class="touch-btn action" id="btnJump" aria-label="跳跃">跳</button>
+        <button class="touch-btn action" id="btnInteract" aria-label="互动">E</button>
+      </div>
+    </div>
+  </div>
+
+  <script>window.__DEV_MODE__ = true;</script>
+  <script src="js/levels.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/game.js"></script>
+  <script src="dev/dev.js"></script>
+</body>
+</html>

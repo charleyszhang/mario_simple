@@ -1,0 +1,53 @@
+* {
+  box-sizing: border-box;
+}
+
+#devBanner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: rgba(20, 10, 30, 0.88);
+  color: #ffb6d9;
+  font-size: 13px;
+  font-family: 'Consolas', 'Segoe UI', monospace;
+  border-bottom: 2px solid #ff69b4;
+  backdrop-filter: blur(6px);
+}
+
+.dev-tag {
+  background: #ff3366;
+  color: #fff;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.dev-keys {
+  color: #ff9ecf;
+  opacity: 0.9;
+}
+
+#game-wrapper {
+  padding-top: 40px;
+}
+
+@media (max-width: 600px) {
+  #devBanner {
+    font-size: 11px;
+    gap: 8px;
+  }
+  .dev-keys {
+    width: 100%;
+    text-align: center;
+  }
+}

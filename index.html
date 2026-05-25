@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>泡泡糖工厂大冒险 - Bubble Gum Factory</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-wrapper">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud">
+      <div class="hud-left">
+        <span id="levelLabel">关卡 1 / 20</span>
+        <span id="powerLabel"></span>
+      </div>
+      <div class="hud-right">
+        <span id="coinLabel">金币: 0</span>
+      </div>
+    </div>
+    <div id="startScreen" class="overlay">
+      <div class="panel">
+        <h1>泡泡糖工厂大冒险</h1>
+        <p class="subtitle">Bubble Gum Factory Adventure</p>
+        <p class="desc">帮助马里奥穿越20层马卡龙粉色工厂，收集强化道具，抵达工厂之巅！</p>
+        <button id="btnStart" class="btn-primary">开始游戏</button>
+        <p class="hint">按空格键也可开始</p>
+        <div class="controls-info">
+          <p><strong>电脑:</strong> 方向键 / WASD 移动，空格 / W 跳跃，E 互动；空格也可确认开始 / 下一关 / 重试</p>
+          <p><strong>手机 / iPad:</strong> 使用屏幕虚拟按键</p>
+        </div>
+      </div>
+    </div>
+    <div id="levelComplete" class="overlay hidden">
+      <div class="panel">
+        <h2>关卡完成!</h2>
+        <p id="levelCompleteMsg"></p>
+        <p class="hint">按空格键或点击按钮进入下一关</p>
+        <button id="btnNext" class="btn-primary">下一关</button>
+      </div>
+    </div>
+    <div id="gameOver" class="overlay hidden">
+      <div class="panel">
+        <h2>再试一次!</h2>
+        <p>从当前关卡重新开始（空格键 / 点击按钮）</p>
+        <button id="btnRetry" class="btn-primary">重试本关</button>
+      </div>
+    </div>
+    <div id="victory" class="overlay hidden">
+      <div class="panel victory-panel">
+        <h1>工厂之巅!</h1>
+        <p>马里奥成功穿越泡泡糖工厂，环境得到了保护！</p>
+        <p class="stats" id="victoryStats"></p>
+        <button id="btnRestart" class="btn-primary">再玩一次</button>
+      </div>
+    </div>
+    <div id="touchControls">
+      <div class="dpad">
+        <button class="touch-btn" id="btnLeft" aria-label="左">L</button>
+        <button class="touch-btn" id="btnRight" aria-label="右">R</button>
+      </div>
+      <div class="action-btns">
+        <button class="touch-btn action" id="btnJump" aria-label="跳跃">跳</button>
+        <button class="touch-btn action" id="btnInteract" aria-label="互动">E</button>
+      </div>
+    </div>
+  </div>
+  <script src="js/levels.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
