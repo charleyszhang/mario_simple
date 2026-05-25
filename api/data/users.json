@@ -43,5 +43,29 @@
         "muteDev": false,
         "achievements": [],
         "created": 1779716988
+    },
+    {
+        "nickname": "chia",
+        "stars": 0,
+        "coins": 0,
+        "levelStars": [],
+        "maxLevel": 0,
+        "skin": "skin_default",
+        "trail": "none",
+        "splat": "default",
+        "owned": [
+            "skin_default"
+        ],
+        "equipped": {
+            "skin": "skin_default",
+            "trail": "none",
+            "splat": "default"
+        },
+        "jumpBoots": false,
+        "muteDev": false,
+        "achievements": [],
+        "password": "$2y$10$MYYUuzek3u2WPVIj1EfFHuh65PQRF7crORf2ebtu6nd2jtwjQv3p.",
+        "token": "f7fc37aedb72eb29dc7f70961dfd84f1",
+        "created": 1779719088
     }
 ]

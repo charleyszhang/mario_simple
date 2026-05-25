@@ -58,7 +58,7 @@ class GameEngine {
       tryLoad(resolve(src), fb ? resolve(fb) : null);
     });
     const files = {
-      mario: ['images/mario.jpg', 'images/mario.png'],
+      mario: ['images/mario.png', 'images/mario.jpg'],
       elements: ['images/element.jpg', 'images/element.png'],
       lumalee: ['images/element2.jpg', 'images/element2.png'],
     };
