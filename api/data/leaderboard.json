@@ -5,5 +5,19 @@
         "coins": 502,
         "maxLevel": 2,
         "updated": 1779718845
+    },
+    {
+        "nickname": "chia",
+        "stars": 2,
+        "coins": 0,
+        "maxLevel": 2,
+        "updated": 1779720919
+    },
+    {
+        "nickname": "jz",
+        "stars": 3,
+        "coins": 0,
+        "maxLevel": 3,
+        "updated": 1779721107
     }
 ]

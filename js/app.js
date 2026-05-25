@@ -143,8 +143,97 @@ const App = {
     }
   },
 
+  hasSeenLore(nickname = this.profile?.nickname) {
+    const nick = (nickname || '').trim();
+    if (nick && localStorage.getItem(`bgf_seen_lore_${nick}`) === '1') return true;
+    return localStorage.getItem('bgf_seen_intro') === '1';
+  },
+
+  markSeenLore(nickname = this.profile?.nickname) {
+    const nick = (nickname || '').trim();
+    if (nick) localStorage.setItem(`bgf_seen_lore_${nick}`, '1');
+    localStorage.setItem('bgf_seen_intro', '1');
+  },
+
+  progressCacheKey(nickname) {
+    return `bgf_progress_${(nickname || '').trim().toLowerCase()}`;
+  },
+
+  cacheProgress(profile = this.profile) {
+    if (!profile?.nickname) return;
+    try {
+      localStorage.setItem(this.progressCacheKey(profile.nickname), JSON.stringify({
+        levelStars: profile.levelStars || [],
+        coins: profile.coins || 0,
+        stars: profile.stars || 0,
+        maxLevel: profile.maxLevel ?? 0,
+        currentLevel: profile.currentLevel ?? 0,
+        updated: Date.now(),
+      }));
+    } catch (e) { /* quota */ }
+  },
+
+  loadCachedProgress(nickname) {
+    try {
+      return JSON.parse(localStorage.getItem(this.progressCacheKey(nickname)) || 'null');
+    } catch (e) {
+      return null;
+    }
+  },
+
+  normalizeProfile(profile) {
+    if (!profile) return null;
+    const p = { ...profile };
+    p.levelStars = Array.isArray(p.levelStars) ? p.levelStars.map(Boolean) : [];
+    p.coins = Number(p.coins) || 0;
+    p.stars = p.levelStars.filter(Boolean).length || Number(p.stars) || 0;
+    p.currentLevel = Math.max(0, Math.min(19, Number(p.currentLevel) || 0));
+    this.syncMaxLevel(p);
+    const max = this.highestUnlockedLevel(p);
+    if (p.currentLevel > max) p.currentLevel = max;
+    return p;
+  },
+
+  mergeProgress(server, cached) {
+    if (!cached) return server;
+    const sLs = Array.isArray(server.levelStars) ? server.levelStars.map(Boolean) : [];
+    const cLs = Array.isArray(cached.levelStars) ? cached.levelStars.map(Boolean) : [];
+    const merged = [];
+    const len = Math.max(sLs.length, cLs.length, 20);
+    for (let i = 0; i < len; i++) merged[i] = !!(sLs[i] || cLs[i]);
+    const out = {
+      ...server,
+      levelStars: merged,
+      coins: Math.max(Number(server.coins) || 0, Number(cached.coins) || 0),
+      stars: merged.filter(Boolean).length,
+      currentLevel: Math.max(Number(server.currentLevel) || 0, Number(cached.currentLevel) || 0),
+    };
+    return this.normalizeProfile(out);
+  },
+
+  adoptProfile(rawProfile, nickname) {
+    const nick = nickname || rawProfile?.nickname || '';
+    const base = this.normalizeProfile(rawProfile || { nickname: nick });
+    const serverStars = base.levelStars.filter(Boolean).length;
+    const serverCoins = Number(rawProfile?.coins) || 0;
+    const serverLevel = Number(rawProfile?.currentLevel) || 0;
+    let profile = base;
+    const cached = this.loadCachedProgress(nick);
+    if (cached) profile = this.mergeProgress(profile, cached);
+    this.profile = profile;
+    this.cacheProgress(profile);
+    const needsSync = profile.levelStars.filter(Boolean).length > serverStars
+      || (profile.coins || 0) > serverCoins
+      || (profile.currentLevel || 0) > serverLevel;
+    return { profile, needsSync };
+  },
+
   async saveProfile() {
-    if (!this.profile?.token) return;
+    if (!this.profile?.token) return { ok: false };
+    this.syncMaxLevel(this.profile);
+    this.cacheProgress();
+    if (this.profile.token === 'demo_local_offline') return { ok: true };
+
     const res = await this.api('leaderboard.php', {
       action: 'save',
       token: this.profile.token,
@@ -152,17 +241,46 @@ const App = {
       coins: this.profile.coins,
       levelStars: this.profile.levelStars,
       maxLevel: this.profile.maxLevel,
+      currentLevel: this.profile.currentLevel ?? 0,
       skin: this.profile.skin,
       owned: this.profile.owned,
       muteDev: this.profile.muteDev,
       achievements: this.profile.achievements,
     });
-    if (res.ok && res.profile) this.profile = { ...this.profile, ...res.profile };
+    if (res.ok && res.profile) {
+      this.profile = this.normalizeProfile({ ...this.profile, ...res.profile });
+      this.cacheProgress();
+    }
+    return res;
   },
 
   countStars() {
     const ls = this.profile?.levelStars || [];
     return Array.isArray(ls) ? ls.filter(Boolean).length : (this.profile?.stars || 0);
+  },
+
+  /** 最高可进入的关卡 index：新玩家仅第 1 关；通关第 n 关后解锁第 n+1 关 */
+  highestUnlockedLevel(profile = this.profile) {
+    const ls = profile?.levelStars || [];
+    let lastCompleted = -1;
+    for (let i = ls.length - 1; i >= 0; i--) {
+      if (ls[i]) { lastCompleted = i; break; }
+    }
+    if (lastCompleted < 0) return 0;
+    return Math.min(lastCompleted + 1, 19);
+  },
+
+  highestCompletedLevel(profile = this.profile) {
+    const ls = profile?.levelStars || [];
+    for (let i = ls.length - 1; i >= 0; i--) {
+      if (ls[i]) return i;
+    }
+    return -1;
+  },
+
+  syncMaxLevel(profile = this.profile) {
+    if (!profile) return;
+    profile.maxLevel = this.highestUnlockedLevel(profile);
   },
 
   async init() {
@@ -216,7 +334,7 @@ const App = {
   async doDemoLogin() {
     if (this.$('loginNick')) this.$('loginNick').value = 'demo';
     if (this.$('loginPass')) this.$('loginPass').value = 'demo123';
-    await this.doLogin({ skipIntro: true });
+    await this.doLogin();
   },
 
   async doLogin(options = {}) {
@@ -258,9 +376,11 @@ const App = {
       this.profile = res.profile || { nickname: nick, token: res.token };
       if (!this.profile.nickname) this.profile.nickname = nick;
       if (!this.profile.token) this.profile.token = res.token;
+      const { needsSync } = this.adoptProfile(this.profile, nick);
+      if (needsSync) await this.saveProfile();
       this.saveSession();
 
-      if (options.skipIntro || localStorage.getItem('bgf_seen_intro') === '1') {
+      if (options.skipIntro) {
         this.enterHub();
       } else {
         this.startIntro();
@@ -286,6 +406,7 @@ const App = {
       this.profile = res.profile || { nickname: nick, token: res.token, coins: 0, stars: 0, levelStars: [] };
       if (!this.profile.nickname) this.profile.nickname = nick;
       if (!this.profile.token) this.profile.token = res.token;
+      this.adoptProfile(this.profile, nick);
       this.saveSession();
       this.startIntro();
     } catch (e) {
@@ -317,26 +438,19 @@ const App = {
       { id: 'lore4', dur: 4000 },
     ];
     let idx = 0;
+    let loreTimers = [];
 
-    const advanceTitle = () => {
-      if (this.screen === 'title') {
-        this.showScreen('lore');
-        showScene(0);
-      }
+    const clearLoreTimers = () => {
+      loreTimers.forEach((t) => clearTimeout(t));
+      loreTimers = [];
     };
 
-    this.$('titleScreen')?.addEventListener('click', advanceTitle);
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && this.screen === 'title') {
-        e.preventDefault();
-        advanceTitle();
-      }
-      if (e.code === 'Space' && this.screen === 'controls') {
-        e.preventDefault();
-        localStorage.setItem('bgf_seen_intro', '1');
-        this.showScreen('hub');
-      }
-    });
+    const updateLoreSkipBtn = () => {
+      const btn = this.$('btnSkipLore');
+      if (!btn) return;
+      btn.textContent = this.settings.lang === 'en' ? 'Skip' : '跳过';
+      btn.classList.toggle('hidden', !this.hasSeenLore());
+    };
 
     const showScene = (i) => {
       idx = i;
@@ -346,23 +460,70 @@ const App = {
       });
       gameAudio?.playSting('lore' + (i + 1));
       if (i >= scenes.length - 1) {
-        setTimeout(() => this.showScreen('controls'), scenes[i].dur);
+        loreTimers.push(setTimeout(() => {
+          this.markSeenLore();
+          this.showScreen('controls');
+        }, scenes[i].dur));
       } else {
-        setTimeout(() => showScene(i + 1), scenes[i].dur);
+        loreTimers.push(setTimeout(() => showScene(i + 1), scenes[i].dur));
       }
     };
 
-    this.$('loreScreen')?.addEventListener('click', () => {
+    const startLore = () => {
+      clearLoreTimers();
+      this.showScreen('lore');
+      updateLoreSkipBtn();
+      showScene(0);
+    };
+
+    const skipLore = () => {
+      clearLoreTimers();
+      this.enterHub();
+    };
+
+    const advanceTitle = () => {
+      if (this.screen !== 'title') return;
+      startLore();
+    };
+
+    this.$('titleScreen')?.addEventListener('click', advanceTitle);
+    this.$('btnSkipLore')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      skipLore();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && this.screen === 'title') {
+        e.preventDefault();
+        advanceTitle();
+      }
+      if (e.code === 'Space' && this.screen === 'controls') {
+        e.preventDefault();
+        this.markSeenLore();
+        this.showScreen('hub');
+      }
+    });
+
+    this.$('loreScreen')?.addEventListener('click', (e) => {
+      if (e.target.closest('#btnSkipLore')) return;
+      clearLoreTimers();
       if (idx < scenes.length - 1) showScene(idx + 1);
-      else this.showScreen('controls');
+      else {
+        this.markSeenLore();
+        this.showScreen('controls');
+      }
     });
     this.$('btnToHub')?.addEventListener('click', () => {
-      localStorage.setItem('bgf_seen_intro', '1');
+      this.markSeenLore();
       this.showScreen('hub');
     });
   },
 
   bindHub() {
+    this.$('btnContinue')?.addEventListener('click', () => {
+      const max = this.highestUnlockedLevel(this.profile);
+      const idx = Math.max(0, Math.min(max, Number(this.profile?.currentLevel) || 0));
+      this.startLevel(idx);
+    });
     this.$('navShop')?.addEventListener('click', () => {
       if (this.countStars() < 3) {
         this.showToast(this.t('stars_need'));
@@ -384,17 +545,21 @@ const App = {
     if (!map) return;
     map.innerHTML = '';
     const stars = this.profile?.levelStars || [];
-    const max = this.profile?.maxLevel ?? 0;
+    const max = this.highestUnlockedLevel(this.profile);
+    const current = Math.max(0, Math.min(max, Number(this.profile?.currentLevel) || 0));
+    const contNum = this.$('continueLevelNum');
+    if (contNum) contNum.textContent = String(current + 1);
     for (let i = 0; i < 20; i++) {
       const node = document.createElement('button');
       node.className = 'map-node';
       node.style.left = `${8 + (i % 5) * 18}%`;
       node.style.top = `${12 + Math.floor(i / 5) * 20}%`;
       if (stars[i]) node.classList.add('starred');
-      if (i > max + 1) node.classList.add('locked');
+      if (i === current) node.classList.add('current');
+      if (i > max) node.classList.add('locked');
       node.innerHTML = `<span class="node-num">${i + 1}</span>${stars[i] ? '<span class="node-star">★</span>' : ''}`;
       node.addEventListener('click', () => {
-        if (i > max + 1) { this.showToast('请先完成前面的关卡'); return; }
+        if (i > max) { this.showToast('请先完成前面的关卡'); return; }
         this.startLevel(i);
       });
       map.appendChild(node);
@@ -410,8 +575,13 @@ const App = {
       this.showToast('游戏未初始化');
       return;
     }
+    if (this.profile) {
+      this.profile.currentLevel = index;
+      this.cacheProgress();
+    }
     GameController.ready.then(() => {
       GameController.startLevelFromHub(index, this.profile);
+      this.saveProfile();
     });
   },
 
@@ -429,9 +599,12 @@ const App = {
       if (!this.profile.levelStars) this.profile.levelStars = [];
       this.profile.levelStars[levelIndex] = true;
       this.profile.stars = this.countStars();
+      this.profile.currentLevel = Math.min(levelIndex + 1, 19);
+    } else {
+      this.profile.currentLevel = levelIndex;
     }
-    this.profile.coins = (this.profile.coins || 0) + levelCoins;
-    if (levelIndex >= (this.profile.maxLevel || 0)) this.profile.maxLevel = levelIndex;
+    this.syncMaxLevel(this.profile);
+    this.cacheProgress();
     this.saveProfile();
   },
 
@@ -553,7 +726,8 @@ const App = {
       <h3>${this.profile.nickname}</h3>
       <p>皮肤: ${skinName}</p>
       <p>★ ${this.countStars()} | 🪙 ${this.profile.coins || 0}</p>
-      <p>最高关卡: ${(this.profile.maxLevel || 0) + 1}</p>
+      <p>最高通关: ${Math.max(0, this.highestCompletedLevel(this.profile) + 1)}</p>
+      <p>当前关卡: ${(Number(this.profile.currentLevel) || 0) + 1}</p>
     `;
   },
 

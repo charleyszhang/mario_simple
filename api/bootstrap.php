@@ -42,11 +42,25 @@ function body() {
     return is_array($json) ? $json : [];
 }
 
-function findUser(&$users, $token) {
-    foreach ($users as &$u) {
-        if (($u['token'] ?? '') === $token) return $u;
+function findUserIndex($users, $token) {
+    foreach ($users as $i => $u) {
+        if (($u['token'] ?? '') === $token) return $i;
     }
     return null;
+}
+
+function findUser(&$users, $token) {
+    $i = findUserIndex($users, $token);
+    return $i === null ? null : $users[$i];
+}
+
+function normalizeLevelStars($stars) {
+    if (!is_array($stars)) return [];
+    $out = [];
+    foreach ($stars as $v) {
+        $out[] = (bool)$v;
+    }
+    return $out;
 }
 
 function defaultProfile($nick) {
@@ -56,6 +70,7 @@ function defaultProfile($nick) {
         'coins' => 0,
         'levelStars' => [],
         'maxLevel' => 0,
+        'currentLevel' => 0,
         'skin' => 'skin_default',
         'trail' => 'none',
         'splat' => 'default',
@@ -97,6 +112,7 @@ function ensureDemoAccount() {
         'coins' => 500,
         'levelStars' => array_merge(array_fill(0, 3, true), array_fill(0, 17, false)),
         'maxLevel' => 2,
+        'currentLevel' => 2,
         'skin' => 'skin_default',
         'trail' => 'none',
         'splat' => 'default',

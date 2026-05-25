@@ -46,6 +46,52 @@
     },
     {
         "nickname": "chia",
+        "stars": 2,
+        "coins": 0,
+        "levelStars": [
+            true,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        "maxLevel": 2,
+        "skin": "skin_default",
+        "trail": "none",
+        "splat": "default",
+        "owned": [
+            "skin_default"
+        ],
+        "equipped": {
+            "skin": "skin_default",
+            "trail": "none",
+            "splat": "default"
+        },
+        "jumpBoots": false,
+        "muteDev": false,
+        "achievements": [],
+        "password": "$2y$10$MYYUuzek3u2WPVIj1EfFHuh65PQRF7crORf2ebtu6nd2jtwjQv3p.",
+        "token": "f7fc37aedb72eb29dc7f70961dfd84f1",
+        "created": 1779719088,
+        "currentLevel": 2
+    },
+    {
+        "nickname": "chiachia",
         "stars": 0,
         "coins": 0,
         "levelStars": [],
@@ -64,8 +110,61 @@
         "jumpBoots": false,
         "muteDev": false,
         "achievements": [],
-        "password": "$2y$10$MYYUuzek3u2WPVIj1EfFHuh65PQRF7crORf2ebtu6nd2jtwjQv3p.",
-        "token": "f7fc37aedb72eb29dc7f70961dfd84f1",
-        "created": 1779719088
+        "password": "$2y$10$\/9L4FbbC1dKXf5fYv.6c0ev.JppKc4qL7pa28U.CudmCfOmLA\/M92",
+        "token": "c581a7d2b691dce6fd7ea62dd256d64e",
+        "created": 1779719774
+    },
+    {
+        "nickname": "chiachiachia",
+        "stars": 0,
+        "coins": 0,
+        "levelStars": [],
+        "maxLevel": 0,
+        "skin": "skin_default",
+        "trail": "none",
+        "splat": "default",
+        "owned": [
+            "skin_default"
+        ],
+        "equipped": {
+            "skin": "skin_default",
+            "trail": "none",
+            "splat": "default"
+        },
+        "jumpBoots": false,
+        "muteDev": false,
+        "achievements": [],
+        "password": "$2y$10$vygc34vFYvLHIa9t2uO\/9Oo\/0lolE5Y6S50ZupU00n8Yqr35BHGXO",
+        "token": "01e73c672d9a301ecab4180cd6dbdba9",
+        "created": 1779719917
+    },
+    {
+        "nickname": "jz",
+        "stars": 3,
+        "coins": 0,
+        "levelStars": [
+            true,
+            true,
+            true
+        ],
+        "maxLevel": 3,
+        "currentLevel": 3,
+        "skin": "skin_default",
+        "trail": "none",
+        "splat": "default",
+        "owned": [
+            "skin_default"
+        ],
+        "equipped": {
+            "skin": "skin_default",
+            "trail": "none",
+            "splat": "default"
+        },
+        "jumpBoots": false,
+        "muteDev": false,
+        "achievements": [],
+        "password": "$2y$10$ayo74HuH78gcToIjKWNZduOyftxricI1gGUgzZfqRnSgX\/wqTVpC6",
+        "token": "83f12e07c2708afcad4fc160b09050c3",
+        "created": 1779720971
     }
 ]

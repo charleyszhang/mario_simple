@@ -16,20 +16,22 @@ if ($action === 'list') {
 if ($action === 'save') {
     $token = $input['token'] ?? '';
     $users = readJson('users.json');
-    $user = findUser($users, $token);
-    if (!$user) respond(['ok' => false, 'error' => '未登录'], 401);
+    $idx = findUserIndex($users, $token);
+    if ($idx === null) respond(['ok' => false, 'error' => '未登录'], 401);
 
-    $user['stars'] = intval($input['stars'] ?? $user['stars'] ?? 0);
-    $user['coins'] = intval($input['coins'] ?? $user['coins'] ?? 0);
-    $user['levelStars'] = $input['levelStars'] ?? ($user['levelStars'] ?? []);
-    $user['maxLevel'] = intval($input['maxLevel'] ?? ($user['maxLevel'] ?? 0));
-    if (isset($input['skin'])) $user['skin'] = $input['skin'];
-    if (isset($input['owned'])) $user['owned'] = $input['owned'];
-    if (isset($input['equipped'])) $user['equipped'] = $input['equipped'];
-    if (isset($input['muteDev'])) $user['muteDev'] = (bool)$input['muteDev'];
-    if (isset($input['achievements'])) $user['achievements'] = $input['achievements'];
+    $users[$idx]['stars'] = intval($input['stars'] ?? ($users[$idx]['stars'] ?? 0));
+    $users[$idx]['coins'] = intval($input['coins'] ?? ($users[$idx]['coins'] ?? 0));
+    $users[$idx]['levelStars'] = normalizeLevelStars($input['levelStars'] ?? ($users[$idx]['levelStars'] ?? []));
+    $users[$idx]['maxLevel'] = intval($input['maxLevel'] ?? ($users[$idx]['maxLevel'] ?? 0));
+    $users[$idx]['currentLevel'] = max(0, min(19, intval($input['currentLevel'] ?? ($users[$idx]['currentLevel'] ?? 0))));
+    if (isset($input['skin'])) $users[$idx]['skin'] = $input['skin'];
+    if (isset($input['owned'])) $users[$idx]['owned'] = $input['owned'];
+    if (isset($input['equipped'])) $users[$idx]['equipped'] = $input['equipped'];
+    if (isset($input['muteDev'])) $users[$idx]['muteDev'] = (bool)$input['muteDev'];
+    if (isset($input['achievements'])) $users[$idx]['achievements'] = $input['achievements'];
     writeJson('users.json', $users);
 
+    $user = $users[$idx];
     $board = readJson('leaderboard.json');
     $found = false;
     foreach ($board as &$row) {

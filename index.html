@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Mario's Sticky Situation - 马里奥的黏腻处境</title>
   <link rel="stylesheet" href="css/style.css?v=20260523">
-  <link rel="stylesheet" href="css/hub.css?v=20260523">
+  <link rel="stylesheet" href="css/hub.css?v=20260527">
 </head>
 <body>
   <section id="loginScreen" data-screen="login" class="app-screen">
@@ -48,6 +48,7 @@
       <p class="lore-en">Don't get stuck. Don't blow it. Good luck.</p>
       <p class="lore-zh">别被黏住。别搞砸了。祝你好运。</p>
     </div>
+    <button id="btnSkipLore" type="button" class="lore-skip hidden">跳过</button>
   </section>
 
   <section id="controlsScreen" data-screen="controls" class="app-screen hidden">
@@ -67,6 +68,7 @@
       <span id="onlineBadge" class="online-badge"></span>
     </header>
     <nav class="hub-nav">
+      <button id="btnContinue" class="btn-continue">继续第 <span id="continueLevelNum">1</span> 关</button>
       <button id="navShop">商店</button>
       <button id="navRank">排行榜</button>
       <button id="navSettings">设置</button>
@@ -203,6 +205,6 @@
   <script src="js/engine.js?v=20260523"></script>
   <script src="js/game.js?v=20260523"></script>
   <script src="js/multiplayer.js?v=20260523"></script>
-  <script src="js/app.js?v=20260523"></script>
+  <script src="js/app.js?v=20260527"></script>
 </body>
 </html>

@@ -44,7 +44,11 @@
     const label = $('levelLabel');
     if (label && ld) label.textContent = `关卡 ${currentLevel + 1} / 20 - ${ld.name}`;
     const coinEl = $('coinLabel');
-    if (coinEl) coinEl.textContent = `金币: ${totalDisplay()} (本关 ${levelCoins})`;
+    if (coinEl) {
+      const replay = isLevelCleared();
+      const suffix = replay ? ' (本关金币已领取)' : ` (本关 ${levelCoins})`;
+      coinEl.textContent = `金币: ${totalDisplay()}${suffix}`;
+    }
     const pl = $('powerLabel');
     if (pl) {
       pl.textContent = player && player.powerType >= 0 && typeof POWERUP_NAMES !== 'undefined'
@@ -72,11 +76,16 @@
     }
   }
 
+  function isLevelCleared(levelIndex = currentLevel) {
+    return !!(profile?.levelStars?.[levelIndex]);
+  }
+
   function startLevel(levelIndex, fresh = true) {
     currentLevel = levelIndex;
     if (fresh) levelCoins = 0;
     const ld = LEVEL_DATA[currentLevel];
     engine.initLevel(ld, levelIndex);
+    engine.setCoinRewardsEnabled(!isLevelCleared(levelIndex));
     player = engine.createPlayer(ld.spawn);
     player.levelCoins = 0;
     applyProfile(profile);
@@ -168,7 +177,9 @@
     if (gameState !== 'playing') return;
     gameState = 'complete';
     const ls = profile?.levelStars || [];
-    earnedStar = !ls[currentLevel];
+    const alreadyCleared = !!ls[currentLevel];
+    earnedStar = !alreadyCleared;
+    const coinsToBank = alreadyCleared ? 0 : levelCoins;
     const lc = $('levelComplete');
     show(lc);
     lc?.classList.add('anim-win');
@@ -177,11 +188,14 @@
     let msg = `${ld.name} 完成！`;
     if (earnedStar) msg += ' 获得 ★ 1 颗星星！';
     else msg += ' (本关星星已领取)';
-    msg += ` 本关金币 +${levelCoins} 已存入银行。`;
+    if (coinsToBank > 0) msg += ` 本关金币 +${coinsToBank} 已存入银行。`;
+    else if (alreadyCleared) msg += ' (重复游玩，本关金币已领取)';
     if ($('levelCompleteMsg')) $('levelCompleteMsg').textContent = msg;
-    bankCoins += levelCoins;
-    if (profile) profile.coins = bankCoins;
-    App?.onLevelComplete?.(currentLevel, levelCoins, earnedStar);
+    if (coinsToBank > 0) {
+      bankCoins += coinsToBank;
+      if (profile) profile.coins = bankCoins;
+    }
+    App?.onLevelComplete?.(currentLevel, coinsToBank, earnedStar);
     levelCoins = 0;
     finishAnimThen(() => {}, 2500);
   }

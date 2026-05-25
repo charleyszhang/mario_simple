@@ -42,6 +42,11 @@ class GameEngine {
     this.remotePlayer = null;
     this.remoteMatch = null;
     this.trailTimer = 0;
+    this.coinRewardsEnabled = true;
+  }
+
+  setCoinRewardsEnabled(enabled) {
+    this.coinRewardsEnabled = enabled;
   }
 
   async loadImages() {
@@ -126,6 +131,7 @@ class GameEngine {
     this.meltTimers = {};
     this.fakeTimers = {};
     this.movingPlatPos = {};
+    this.coinRewardsEnabled = true;
   }
 
   createPlayer(spawn) {
@@ -375,16 +381,22 @@ class GameEngine {
       if (!c.active) continue;
       const cy = c.y + Math.sin(c.bob + this.levelTime * 3) * 5;
       if (this.aabb(player, { x: c.x, y: cy, w: 28, h: 28 })) {
-        c.active = false;
         if (c.type === 'coin') {
-          player.levelCoins = (player.levelCoins || 0) + 1;
-        } else if (c.type === 'lumalee') {
-          this.applyPower(player, 1);
-          player.invincible = 5000;
-        } else if (c.type === 'question') {
-          this.applyPower(player, Math.floor(Math.random() * 8));
+          if (this.coinRewardsEnabled) {
+            c.active = false;
+            player.levelCoins = (player.levelCoins || 0) + 1;
+            this.spawnParticles(c.x + 14, cy + 14, '#ffd700', 8);
+          }
+        } else {
+          c.active = false;
+          if (c.type === 'lumalee') {
+            this.applyPower(player, 1);
+            player.invincible = 5000;
+          } else if (c.type === 'question') {
+            this.applyPower(player, Math.floor(Math.random() * 8));
+          }
+          this.spawnParticles(c.x + 14, cy + 14, '#ffd700', 8);
         }
-        this.spawnParticles(c.x + 14, cy + 14, '#ffd700', 8);
       }
       c.bob += dt * 0.003;
     }
@@ -440,7 +452,9 @@ class GameEngine {
 
   applyPower(player, type) {
     if (type === -1) {
-      player.levelCoins = (player.levelCoins || 0) + 1;
+      if (this.coinRewardsEnabled) {
+        player.levelCoins = (player.levelCoins || 0) + 1;
+      }
       return;
     }
     player.powerType = type;

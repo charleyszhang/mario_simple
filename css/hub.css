@@ -125,6 +125,30 @@
 
 .lore-zh { color: #ffe0f0; }
 
+.lore-skip {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 210;
+  padding: 10px 22px;
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  background: rgba(45, 27, 78, 0.75);
+  color: #ffe0f0;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.lore-skip:hover {
+  background: rgba(255, 105, 180, 0.85);
+  color: #fff;
+}
+
+.lore-skip.hidden { display: none !important; }
+
 @keyframes loreFade {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
@@ -163,6 +187,15 @@
   cursor: pointer;
 }
 
+.hub-nav .btn-continue {
+  flex: 1.4;
+  min-width: 140px;
+  background: linear-gradient(145deg, #ffd700, #ffb000);
+  border-color: #fff;
+  color: #5a1a4a;
+  box-shadow: 0 4px 14px rgba(255, 180, 0, 0.45);
+}
+
 .level-map {
   position: relative;
   width: min(900px, 96vw);
@@ -191,7 +224,13 @@
 }
 
 .map-node.starred { box-shadow: 0 0 0 3px gold; }
+.map-node.current { box-shadow: 0 0 0 4px #fff, 0 0 0 7px #00e5ff; animation: mapPulse 1.6s ease-in-out infinite; }
 .map-node.locked { opacity: 0.45; filter: grayscale(0.6); }
+
+@keyframes mapPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.08); }
+}
 .node-star { position: absolute; top: -8px; right: -8px; color: gold; font-size: 14px; }
 
 .sub-header {

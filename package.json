@@ -16,5 +16,8 @@
     "url": "https://github.com/charleyszhang/mario_simple/issues"
   },
   "homepage": "https://github.com/charleyszhang/mario_simple#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
 }
