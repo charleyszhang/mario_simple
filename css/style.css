@@ -205,10 +205,65 @@ html, body {
   transform: scale(0.95);
 }
 
-@media (min-width: 1024px) and (hover: hover) {
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
   #touchControls {
-    opacity: 0.5;
+    opacity: 0.55;
   }
+}
+
+@media (hover: none), (pointer: coarse) {
+  #touchControls {
+    opacity: 1;
+  }
+  .touch-btn {
+    width: clamp(64px, 16vw, 84px);
+    height: clamp(64px, 16vw, 84px);
+    background: rgba(255, 105, 180, 0.92);
+    border-color: #fff;
+    color: #fff;
+    font-size: clamp(18px, 4.5vw, 24px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  }
+  .touch-btn.action {
+    width: clamp(72px, 18vw, 92px);
+    height: clamp(72px, 18vw, 92px);
+    background: rgba(255, 40, 140, 0.95);
+  }
+}
+
+.overlay.tap-anywhere {
+  cursor: pointer;
+}
+
+.overlay.anim-death .splat-blob {
+  animation: splatPop 0.6s ease-out;
+}
+
+@keyframes splatPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.85; }
+}
+
+.splat-blob {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 16px;
+  background: radial-gradient(circle, #ff69b4 30%, #ff1493 70%, transparent 72%);
+  border-radius: 50% 40% 55% 45%;
+}
+
+.overlay.anim-win .star-icon,
+.star-burst .star-icon {
+  font-size: 64px;
+  color: gold;
+  animation: starSpin 1s ease infinite alternate;
+  text-shadow: 0 0 20px gold;
+}
+
+@keyframes starSpin {
+  from { transform: scale(1) rotate(-10deg); }
+  to { transform: scale(1.2) rotate(10deg); }
 }
 
 @media (max-width: 480px) {

@@ -1,0 +1,47 @@
+[
+    {
+        "nickname": "demo",
+        "password": "$2y$10$KzJbH0oJRPXPrUMjCTZ3ju\/9mlP4LdOTdcgy5aPIdA070VPEvVgYa",
+        "token": "demo_token_bubble_gum_factory_2026",
+        "stars": 3,
+        "coins": 500,
+        "levelStars": [
+            true,
+            true,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        "maxLevel": 2,
+        "skin": "skin_default",
+        "trail": "none",
+        "splat": "default",
+        "owned": [
+            "skin_default"
+        ],
+        "equipped": {
+            "skin": "skin_default",
+            "trail": "none",
+            "splat": "default"
+        },
+        "jumpBoots": false,
+        "muteDev": false,
+        "achievements": [],
+        "created": 1779716988
+    }
+]

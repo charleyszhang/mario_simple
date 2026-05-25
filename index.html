@@ -4,11 +4,144 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>泡泡糖工厂大冒险 - Bubble Gum Factory</title>
+  <title>Mario's Sticky Situation - 马里奥的黏腻处境</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/hub.css">
 </head>
 <body>
-  <div id="game-wrapper">
+  <section id="loginScreen" data-screen="login" class="app-screen">
+    <div class="panel auth-panel">
+      <h2>马里奥的黏腻处境</h2>
+      <p class="subtitle">Mario's Sticky Situation</p>
+      <label>昵称 <input id="loginNick" maxlength="16" autocomplete="username"></label>
+      <label>密码 <input id="loginPass" type="password" autocomplete="current-password"></label>
+      <p id="loginError" class="error"></p>
+      <p class="demo-hint">Demo 账号：<strong>demo</strong> / 密码：<strong>demo123</strong>（3★、500金币，可进商店）</p>
+      <div class="btn-row">
+        <button id="btnLogin" class="btn-primary">登录</button>
+        <button id="btnRegister" class="btn-secondary">注册</button>
+      </div>
+      <button id="btnDemoLogin" type="button" class="btn-demo">一键登录 Demo</button>
+    </div>
+  </section>
+
+  <section id="titleScreen" data-screen="title" class="app-screen hidden">
+    <div id="titleLetters" class="title-letters"></div>
+    <p class="title-cn">马里奥的黏腻处境</p>
+    <p class="hint">按空格或点击继续</p>
+  </section>
+
+  <section id="loreScreen" data-screen="lore" class="app-screen hidden">
+    <div id="lore1" class="lore-scene active">
+      <p class="lore-en">Welcome to Hubba-Dubba Valley.<br>A sweet, colorful paradise... or so it looks.</p>
+      <p class="lore-zh">欢迎来到泡泡糖山谷。<br>一个看似甜蜜、色彩斑斓的天堂。</p>
+    </div>
+    <div id="lore2" class="lore-scene">
+      <p class="lore-en">The Over-Chewer has warped reality into a sticky, unpredictable nightmare.</p>
+      <p class="lore-zh">但「大嚼王」已将这里的现实扭曲成一场黏糊糊、充满未知的噩梦。</p>
+    </div>
+    <div id="lore3" class="lore-scene">
+      <p class="lore-en">Every platform is a trap. Every treat is a trick.</p>
+      <p class="lore-zh">每一个平台都是陷阱。每一份甜点都是诡计。</p>
+    </div>
+    <div id="lore4" class="lore-scene">
+      <p class="lore-en">Don't get stuck. Don't blow it. Good luck.</p>
+      <p class="lore-zh">别被黏住。别搞砸了。祝你好运。</p>
+    </div>
+  </section>
+
+  <section id="controlsScreen" data-screen="controls" class="app-screen hidden">
+    <div class="panel">
+      <h2>操作说明</h2>
+      <p><strong>电脑:</strong> 方向键 / WASD 移动，空格 / W 跳跃，E 互动</p>
+      <p><strong>手机 / iPad:</strong> 使用屏幕虚拟按键；失败时点击任意处重试</p>
+      <p class="hint">按空格或点击下方按钮进入地图</p>
+      <button id="btnToHub" class="btn-primary">进入泡泡糖山谷</button>
+    </div>
+  </section>
+
+  <section id="hubScreen" data-screen="hub" class="app-screen hidden">
+    <header class="hub-header">
+      <h2>泡泡糖山谷</h2>
+      <span id="hubStats"></span>
+      <span id="onlineBadge" class="online-badge"></span>
+    </header>
+    <nav class="hub-nav">
+      <button id="navShop">商店</button>
+      <button id="navRank">排行榜</button>
+      <button id="navSettings">设置</button>
+      <button id="navProfile">个人中心</button>
+      <button id="navRules">规则</button>
+    </nav>
+    <div id="levelMap" class="level-map"></div>
+  </section>
+
+  <section id="shopScreen" data-screen="shop" class="app-screen hidden shop-screen">
+    <header class="sub-header">
+      <button data-back-hub class="btn-back">返回</button>
+      <h2>商店</h2>
+      <span><span id="shopCoins">0</span> 🪙</span>
+    </header>
+    <div class="shop-tabs">
+      <button class="shop-tab active" data-cat="skins">皮肤</button>
+      <button class="shop-tab" data-cat="snacks">零食</button>
+      <button class="shop-tab" data-cat="trails">尾迹</button>
+      <button class="shop-tab" data-cat="splats">死亡特效</button>
+      <button class="shop-tab" data-cat="tricks">陷阱商品</button>
+    </div>
+    <div class="shop-panel" data-cat="skins"><div class="shop-grid"></div></div>
+    <div class="shop-panel hidden" data-cat="snacks"><div class="shop-grid"></div></div>
+    <div class="shop-panel hidden" data-cat="trails"><div class="shop-grid"></div></div>
+    <div class="shop-panel hidden" data-cat="splats"><div class="shop-grid"></div></div>
+    <div class="shop-panel hidden" data-cat="tricks"><div class="shop-grid"></div></div>
+  </section>
+
+  <section id="leaderboardScreen" data-screen="leaderboard" class="app-screen hidden">
+    <header class="sub-header">
+      <button data-back-hub class="btn-back">返回</button>
+      <h2>排行榜</h2>
+    </header>
+    <ol id="leaderboardList" class="leaderboard-list"></ol>
+  </section>
+
+  <section id="settingsScreen" data-screen="settings" class="app-screen hidden">
+    <header class="sub-header">
+      <button data-back-hub class="btn-back">返回</button>
+      <h2>设置</h2>
+    </header>
+    <div class="panel settings-panel">
+      <label><input type="checkbox" id="settingMusic" checked> 音乐</label>
+      <label>语言
+        <select id="settingLang">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section id="profileScreen" data-screen="profile" class="app-screen hidden">
+    <header class="sub-header">
+      <button data-back-hub class="btn-back">返回</button>
+      <h2>个人中心</h2>
+    </header>
+    <div id="profileBody" class="panel profile-panel"></div>
+  </section>
+
+  <section id="rulesScreen" data-screen="rules" class="app-screen hidden">
+    <header class="sub-header">
+      <button data-back-hub class="btn-back">返回</button>
+      <h2>规则</h2>
+    </header>
+    <div class="panel rules-panel">
+      <p>失败只重试当前关卡。本关获得的金币在失败时清零，重试也不能再拿已收集的金币。</p>
+      <p>每关首次通关获得1颗星星，不可重复。至少3颗星星才能进入商店。</p>
+      <p>有其他玩家在线时，系统会随机匹配两人在同一关；碰到对方即失败。可送礼物或攻击。</p>
+      <p>这是陷阱游戏——别相信任何看起来安全的东西。</p>
+    </div>
+  </section>
+
+  <div id="game-wrapper" class="hidden">
     <canvas id="gameCanvas"></canvas>
     <div id="hud">
       <div class="hud-left">
@@ -19,56 +152,57 @@
         <span id="coinLabel">金币: 0</span>
       </div>
     </div>
-    <div id="startScreen" class="overlay">
-      <div class="panel">
-        <h1>泡泡糖工厂大冒险</h1>
-        <p class="subtitle">Bubble Gum Factory Adventure</p>
-        <p class="desc">帮助马里奥穿越20层马卡龙粉色工厂，收集强化道具，抵达工厂之巅！</p>
-        <button id="btnStart" class="btn-primary">开始游戏</button>
-        <p class="hint">按空格键也可开始</p>
-        <div class="controls-info">
-          <p><strong>电脑:</strong> 方向键 / WASD 移动，空格 / W 跳跃，E 互动；空格也可确认开始 / 下一关 / 重试</p>
-          <p><strong>手机 / iPad:</strong> 使用屏幕虚拟按键</p>
-        </div>
-      </div>
+    <div id="mpActions" class="mp-actions hidden">
+      <span id="mpOpponent"></span>
+      <button id="btnMpGift" class="btn-small">送礼</button>
+      <button id="btnMpAttack" class="btn-small">攻击</button>
     </div>
     <div id="levelComplete" class="overlay hidden">
-      <div class="panel">
+      <div class="panel star-burst">
         <h2>关卡完成!</h2>
+        <div class="star-icon">★</div>
         <p id="levelCompleteMsg"></p>
-        <p class="hint">按空格键或点击按钮进入下一关</p>
+        <p class="hint">按空格或点击任意处继续</p>
         <button id="btnNext" class="btn-primary">下一关</button>
       </div>
     </div>
-    <div id="gameOver" class="overlay hidden">
-      <div class="panel">
+    <div id="gameOver" class="overlay hidden tap-anywhere">
+      <div class="panel splat-panel">
+        <div class="splat-blob"></div>
         <h2>再试一次!</h2>
-        <p>从当前关卡重新开始（空格键 / 点击按钮）</p>
-        <button id="btnRetry" class="btn-primary">重试本关</button>
+        <p id="gameOverMsg">点击任意处或按空格重试</p>
       </div>
     </div>
     <div id="victory" class="overlay hidden">
       <div class="panel victory-panel">
         <h1>工厂之巅!</h1>
-        <p>马里奥成功穿越泡泡糖工厂，环境得到了保护！</p>
+        <p>马力欧吐掉了最后一口泡泡糖。混乱的噩梦结束了！</p>
         <p class="stats" id="victoryStats"></p>
-        <button id="btnRestart" class="btn-primary">再玩一次</button>
+        <button id="btnVictoryHub" class="btn-primary">返回地图</button>
       </div>
     </div>
+    <button id="btnHub" class="btn-hub-exit">地图</button>
     <div id="touchControls">
       <div class="dpad">
-        <button class="touch-btn" id="btnLeft" aria-label="左">L</button>
-        <button class="touch-btn" id="btnRight" aria-label="右">R</button>
+        <button class="touch-btn" id="btnLeft">L</button>
+        <button class="touch-btn" id="btnRight">R</button>
       </div>
       <div class="action-btns">
-        <button class="touch-btn action" id="btnJump" aria-label="跳跃">跳</button>
-        <button class="touch-btn action" id="btnInteract" aria-label="互动">E</button>
+        <button class="touch-btn action" id="btnJump">跳</button>
+        <button class="touch-btn action" id="btnInteract">E</button>
       </div>
     </div>
   </div>
+
+  <div id="toast" class="toast"></div>
+
   <script src="js/levels.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/font.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

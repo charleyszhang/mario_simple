@@ -1,15 +1,16 @@
 /**
  * Bubble Gum Factory - Game Engine
  */
-const GRAVITY = 0.6;
+const GRAVITY = 0.62;
 const FRICTION = 0.85;
 const GEL_FRICTION = 0.55;
-const BOUNCE_FORCE = -14;
-const JUMP_FORCE = -11;
-const HIGH_JUMP = -15;
+const BOUNCE_FORCE = -16;
+const JUMP_FORCE = -13;
+const HIGH_JUMP = -17;
 const MOVE_SPEED = 4.5;
 const SPEED_BOOST = 6.5;
 const LOW_GRAVITY = 0.25;
+const DIFFICULTY = 1.35;
 
 class GameEngine {
   constructor(canvas) {
@@ -26,25 +27,33 @@ class GameEngine {
     this.meltTimers = {};
     this.fakeTimers = {};
     this.movingPlatPos = {};
+    this.remotePlayer = null;
+    this.remoteMatch = null;
+    this.trailTimer = 0;
   }
 
   async loadImages() {
+    const loadOne = (src, fb) => new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        if (!fb) return resolve(null);
+        const img2 = new Image();
+        img2.onload = () => resolve(img2);
+        img2.onerror = () => resolve(null);
+        img2.src = fb;
+      };
+      img.src = src;
+    });
     const files = {
-      mario: 'images/mario.png',
-      elements: 'images/element.jpg',
-      lumalee: 'images/element2.jpg',
+      mario: ['images/mario.png', null],
+      elements: ['images/element.png', 'images/element.jpg'],
+      lumalee: ['images/element2.png', 'images/element2.jpg'],
     };
-    for (let i = 1; i <= 20; i++) {
-      files[`bg${i}`] = `images/background${i}.jpg`;
-    }
-    await Promise.all(Object.entries(files).map(([key, src]) =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => { this.images[key] = img; resolve(); };
-        img.onerror = () => { this.images[key] = null; resolve(); };
-        img.src = src;
-      })
-    ));
+    for (let i = 1; i <= 20; i++) files[`bg${i}`] = [`images/background${i}.jpg`, null];
+    await Promise.all(Object.entries(files).map(async ([key, [src, fb]]) => {
+      this.images[key] = await loadOne(src, fb);
+    }));
   }
 
   resize() {
@@ -78,7 +87,10 @@ class GameEngine {
 
     this.collectibles = (this.level.collectibles || []).map(c => ({ ...c, active: true, bob: Math.random() * Math.PI * 2 }));
     this.powerups = (this.level.powerups || []).map(p => ({ ...p, active: true, bob: Math.random() * Math.PI * 2 }));
-    this.enemies = (this.level.enemies || []).map((e, i) => ({ ...e, id: i, dir: 1, alive: true }));
+    this.enemies = (this.level.enemies || []).map((e, i) => ({
+      ...e, id: i, dir: 1, alive: true,
+      speed: (e.speed || 1.5) * DIFFICULTY,
+    }));
     this.hazards = this.level.hazards || [];
     this.vents = this.level.vents || [];
     this.rollers = (this.level.rollers || []).map(r => ({ ...r, angle: 0 }));
@@ -96,8 +108,9 @@ class GameEngine {
       vx: 0, vy: 0, onGround: false, facing: 1,
       lives: 3, invincible: 0, powerType: -1, powerTimer: 0,
       animFrame: 0, animTimer: 0, canJump: true,
-      inLowGrav: false, inGel: false, coinCount: 0,
+      inLowGrav: false, inGel: false, levelCoins: 0,
       big: false, speedBoost: false, highJump: false, canGlide: false,
+      skin: 'skin_default', trail: 'none', splat: 'default', nickname: '',
     };
   }
 
@@ -320,6 +333,12 @@ class GameEngine {
       if (this.aabb(player, e) && player.invincible <= 0) return 'dead';
     }
 
+    if (this.remotePlayer && this.remoteMatch) {
+      const rp = this.remotePlayer;
+      const box = { x: rp.x, y: rp.y, w: 32, h: 48 };
+      if (this.aabb(player, box) && player.invincible <= 0) return 'dead';
+    }
+
     // Hazards
     for (const h of this.hazards) {
       if (h.type === 'spike' && this.aabb(player, h) && player.invincible <= 0) return 'dead';
@@ -332,7 +351,7 @@ class GameEngine {
       if (this.aabb(player, { x: c.x, y: cy, w: 28, h: 28 })) {
         c.active = false;
         if (c.type === 'coin') {
-          player.coinCount++;
+          player.levelCoins = (player.levelCoins || 0) + 1;
         } else if (c.type === 'lumalee') {
           this.applyPower(player, 1);
           player.invincible = 5000;
@@ -395,7 +414,7 @@ class GameEngine {
 
   applyPower(player, type) {
     if (type === -1) {
-      player.coinCount++;
+      player.levelCoins = (player.levelCoins || 0) + 1;
       return;
     }
     player.powerType = type;
@@ -490,6 +509,10 @@ class GameEngine {
     // Enemies
     for (const e of this.enemies) {
       if (e.alive) this.drawEnemy(ctx, e, cam);
+    }
+
+    if (this.remotePlayer && this.remoteMatch) {
+      this.drawRemotePlayer(ctx, this.remotePlayer, cam);
     }
 
     // Exit flag
@@ -790,20 +813,55 @@ class GameEngine {
 
   drawEnemy(ctx, e, cam) {
     const x = e.x - cam;
-    const grad = ctx.createRadialGradient(x + e.w / 2, e.y + e.h / 2, 5, x + e.w / 2, e.y + e.h / 2, e.w / 2);
-    grad.addColorStop(0, 'rgba(255,182,217,0.9)');
-    grad.addColorStop(0.7, 'rgba(255,105,180,0.6)');
-    grad.addColorStop(1, 'rgba(255,105,180,0.1)');
+    const cx = x + e.w / 2;
+    const cy = e.y + e.h / 2;
+  const pulse = 1 + Math.sin(this.levelTime * 6 + e.id) * 0.08;
+
+    ctx.save();
+    ctx.shadowColor = '#8b0000';
+    ctx.shadowBlur = 14;
+
+    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, e.w * 0.55 * pulse);
+    grad.addColorStop(0, '#ff1493');
+    grad.addColorStop(0.45, '#cc0066');
+    grad.addColorStop(1, '#4a0028');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(x + e.w / 2, e.y + e.h / 2, e.w / 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, (e.w / 2) * pulse, 0, Math.PI * 2);
     ctx.fill();
-    // Eyes
-    ctx.fillStyle = '#333';
+
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + this.levelTime * 2;
+      ctx.fillStyle = '#990033';
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * e.w * 0.35, cy + Math.sin(a) * e.h * 0.35);
+      ctx.lineTo(cx + Math.cos(a + 0.25) * e.w * 0.55, cy + Math.sin(a + 0.25) * e.h * 0.55);
+      ctx.lineTo(cx + Math.cos(a - 0.25) * e.w * 0.55, cy + Math.sin(a - 0.25) * e.h * 0.55);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.ellipse(x + e.w * 0.35, e.y + e.h * 0.4, 4, 6, 0, 0, Math.PI * 2);
-    ctx.ellipse(x + e.w * 0.65, e.y + e.h * 0.4, 4, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx - e.w * 0.18, cy - e.h * 0.05, 7, 9, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + e.w * 0.18, cy - e.h * 0.05, 7, 9, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.arc(cx - e.w * 0.18, cy - e.h * 0.05, 3, 0, Math.PI * 2);
+    ctx.arc(cx + e.w * 0.18, cy - e.h * 0.05, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(cx - e.w * 0.18, cy - e.h * 0.05, 1.2, 0, Math.PI * 2);
+    ctx.arc(cx + e.w * 0.18, cy - e.h * 0.05, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ff6666';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy + e.h * 0.15, e.w * 0.22, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+    ctx.restore();
   }
 
   drawExit(ctx, exit, cam) {
@@ -843,6 +901,15 @@ class GameEngine {
         ctx.drawImage(img, px, py, pw, ph);
       }
       ctx.restore();
+      const tint = typeof SKIN_TINTS !== 'undefined' ? SKIN_TINTS[player.skin] : null;
+      if (tint) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = tint;
+        ctx.globalAlpha = 0.45;
+        ctx.fillRect(px, py, pw, ph);
+        ctx.restore();
+      }
     } else {
       ctx.fillStyle = '#ff69b4';
       ctx.fillRect(px, py, pw, ph);
@@ -858,5 +925,52 @@ class GameEngine {
     }
 
     ctx.globalAlpha = 1;
+  }
+
+  resetCollectibles() {
+    this.collectibles.forEach((c) => { c.active = true; });
+    this.powerups.forEach((p) => { p.active = true; });
+  }
+
+  setRemotePlayer(opp, match) {
+    this.remotePlayer = opp;
+    this.remoteMatch = match;
+  }
+
+  emitTrail(player) {
+    if (!player || player.trail === 'none') return;
+    this.trailTimer = (this.trailTimer || 0) + 1;
+    if (this.trailTimer % 4 !== 0) return;
+    const colors = {
+      trail_glitter: ['#ffd700', '#ff69b4', '#fff'],
+      trail_bubble: ['#ffb6d9', '#fff'],
+      trail_wrappers: ['#ff3366', '#33cc33', '#ffd700'],
+    };
+    const pal = colors[player.trail] || ['#ffb6d9'];
+    this.spawnParticles(player.x + player.w / 2, player.y + player.h, pal[this.trailTimer % pal.length], 2);
+  }
+
+  spawnDeathSplat(player, splat) {
+    const colors = {
+      default: '#ff69b4',
+      splat_confetti: '#ffd700',
+      splat_ooze: '#33ff66',
+      splat_gold: '#ffcc00',
+    };
+    this.spawnParticles(player.x + player.w / 2, player.y + player.h / 2, colors[splat] || colors.default, 24);
+  }
+
+  drawRemotePlayer(ctx, rp, cam) {
+    const x = rp.x - cam;
+    const y = rp.y || 400;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#66ccff';
+    ctx.fillRect(x, y, 32, 48);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(rp.nickname || '?', x + 16, y - 8);
+    ctx.restore();
   }
 }
